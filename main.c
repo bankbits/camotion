@@ -75,6 +75,42 @@ int MinFrame(int rcap[], int gcap[], int bcap[], int size)
 	return index;
 } /* MinFrame() */
 
+void DisplayFrame(Image * img, Image * img_prev, unsigned char *pImg, unsigned char *pImg_prev, unsigned char *s, unsigned char *d, unsigned char *s_prev, unsigned char *pScreen, int *b1, int *g1, int *r1) {
+
+	int x, y;
+	int r, g, b;
+	struct fb_var_screeninfo vinfo;
+
+	// Display frame on screen using framebuffer
+	for(y = 0; y < HEIGHT; y++) 
+	{
+		s = &pImg[y * img->width*3];
+		s_prev = &pImg_prev[y * img->width*3];
+		d = &pScreen[y * vinfo.xres * 4];
+	
+		for(x = 0; x < WIDTH; x++) 
+		{
+			// bit order with least significant bit first (blue value)
+			b = s[0];
+			g = s[1];
+			r = s[2];
+			d[0] = b;
+			d[1] = g;
+			d[2] = r;
+			d[3] = 255;	
+			if (img_prev != NULL)
+			{
+				*b1 += abs(b - s_prev[0]);
+				*g1 += abs(g - s_prev[1]);
+				*r1 += abs(r - s_prev[2]);
+			}
+			s += 3;
+			s_prev += 3;
+			d += 4;
+		} // for x
+	} // for y
+} /* DisplayFrame() */
+
 int main(int argc, char * argv[])
 {
 	int fbfd = 0;
@@ -117,7 +153,6 @@ int main(int argc, char * argv[])
 	unsigned char *pImage, *pImage_prev, *ps, *ps_prev;
 	unsigned char *pScreen, *pd;
 
-	
 	// CAMERA CODE
 
 	// open the webcam, with a capture resolution of width 320 and height 240
@@ -171,8 +206,10 @@ printf("camOpen returned cam structure %08x\n", (int)cam);
 			if (img_prev != NULL) pImage_prev = img_prev->data;
 			r1 = g1 = b1 = 0;
 			
+			DisplayFrame(img, img_prev, pImage, pImage_prev, ps, pd, ps_prev, pScreen, &b1, &g1, &r1);
 
-			// Display frame on screen using framebuffer
+
+			/*// Display frame on screen using framebuffer
 			for(y = 0; y < HEIGHT; y++) 
 			{
 				ps = &pImage[y * img->width*3];
@@ -199,31 +236,31 @@ printf("camOpen returned cam structure %08x\n", (int)cam);
 					ps_prev += 3;
 					pd += 4;
 				} // for x
-			} // for y
+			} // for y*/
 
-			cap_frames[buffer_count] = img;
+			/*cap_frames[buffer_count] = img;
 
 			bcap[buffer_count] = b1;			
 			gcap[buffer_count] = g1;
-			rcap[buffer_count] = r1;
+			rcap[buffer_count] = r1;*/
 
-			if(frames == (start_frame + BUFFER_SIZE)) 
+			/*if(frames == (start_frame + BUFFER_SIZE)) 
 			{
 				// save the best frame from the buffer
 				printf("%d\n", MinFrame(rcap, gcap, bcap, BUFFER_SIZE));
 				best_frame = cap_frames[MinFrame(rcap, gcap, bcap, BUFFER_SIZE)]; 
 				printf("BEST FRAME SAVED\n");
-			}
+			}*/
 
 
 //			printf("R: %d\t G: %d\t B: %d\n", r1, g1, b1);
 
 			if(((float)r1*rw) >= 2000000.0 || ((float)g1*gw) >= 2000000.0 || ((float)b1*bw) >= 2000000.0) 
 			{
-				printf("MOTION TRIGGERED\n");
+				//printf("MOTION TRIGGERED\n");
 				
-				if((frames - start_frame) >= BUFFER_SIZE)
-					start_frame = frames;
+				/*if((frames - start_frame) >= BUFFER_SIZE)
+					start_frame = frames;*/
 
 				// Motion detected, now display current frame next to live captured frames
 				for(y = 0; y < HEIGHT; y++) 
@@ -252,10 +289,10 @@ printf("camOpen returned cam structure %08x\n", (int)cam);
 				imgDestroy(img_prev);
 
 			frames++;
-			if(buffer_count > 29)
+			/*if(buffer_count > 29)
 				buffer_count = 0;
 
-			buffer_count++;	
+			buffer_count++;	*/
 		}
 		imgDestroy(img); // free last frame
 		iTime = MilliTime() - iTime;
